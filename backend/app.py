@@ -101,18 +101,21 @@ def convert_text():
             }), 200
             
         except Exception as e:
-            # 상세 에러 로깅
+            # 상세 에러 로깅 (콘솔 출력 - Vercel logs에서 확인 가능)
             import traceback
             error_msg = f"[ERROR] {str(e)}\n{traceback.format_exc()}"
             print(error_msg)
             
-            # 파일 로깅 (필요 시)
-            log_dir = os.path.join(os.path.dirname(__file__), 'logs')
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
-            with open(os.path.join(log_dir, "error.log"), "a", encoding="utf-8") as f:
-                from datetime import datetime
-                f.write(f"--- {datetime.now()} ---\n{error_msg}\n")
+            # 서버리스 환경이 아닐 경우를 대비한 파일 로깅 (선택 사항)
+            try:
+                log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+                if not os.path.exists(log_dir):
+                    os.makedirs(log_dir)
+                with open(os.path.join(log_dir, "error.log"), "a", encoding="utf-8") as f:
+                    from datetime import datetime
+                    f.write(f"--- {datetime.now()} ---\n{error_msg}\n")
+            except Exception as log_err:
+                print(f"[WARN] Could not write to log file: {log_err}")
                 
             return jsonify({"error": "AI 변환 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}), 500
     else:
