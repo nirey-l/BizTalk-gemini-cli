@@ -7,8 +7,9 @@ from groq import Groq
 # 환경 변수 로드
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)  # 모든 도메인에서의 요청 허용 (개발용)
+# static_folder 경로가 올바른지 확인하세요 (frontend 폴더가 backend와 같은 위치에 있을 때)
+app = Flask(__name__, static_folder='../frontend', static_url_path='')
+CORS(app)
 
 # Groq 클라이언트 초기화
 api_key = os.getenv("GROQ_API_KEY")
@@ -21,33 +22,46 @@ if api_key and api_key != "your_groq_api_key_here":
     except Exception as e:
         print(f"Failed to initialize Groq Client: {e}")
 else:
-    print("Warning: GROQ_API_KEY is not set or valid. AI features will respond with dummy data.")
+    print("Warning: GROQ_API_KEY is not set or valid.")
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """서버 상태 확인용 엔드포인트"""
     return jsonify({"status": "healthy", "service": "BizTone Converter API"}), 200
 
 @app.route('/api/convert', methods=['POST'])
 def convert_text():
-    """텍스트 변환 엔드포인트"""
     data = request.get_json()
     
     if not data or 'text' not in data:
         return jsonify({"error": "No text provided"}), 400
     
     input_text = data.get('text')
-    target_type = data.get('target', 'boss') # boss, colleague, customer
+    target_type = data.get('target', 'boss') 
     
-    # 1단계: API 연동 테스트를 위한 로직
-    # 실제 API 키가 있으면 호출 시도, 없으면 더미 응답 반환
     if client:
         try:
-            # 프롬프트 구성 (간단한 예시)
-            system_prompt = f"Convert the following text into a professional business tone suitable for a {target_type}. Output only the converted text."
+            # 대상별 한국어 프롬프트 정의
+            target_prompts = {
+                "boss": "상사(상급자)에게 보고하는 격식 있고 정중한 비즈니스 한국어 말투",
+                "colleague": "동료에게 협업을 요청하거나 정보를 공유하는 예의 바르고 친절한 비즈니스 한국어 말투",
+                "customer": "고객에게 안내하거나 응대하는 극존칭의 친절한 서비스 한국어 말투"
+            }
+            
+            target_desc = target_prompts.get(target_type, "정중한 비즈니스 한국어 말투")
+            
+            system_prompt = (
+                f"당신은 비즈니스 커뮤니케이션 전문가입니다. "
+                f"입력된 텍스트를 {target_desc}로 변환해 주세요. "
+                f"반드시 한국어로 답변하고, 변환된 결과 텍스트만 출력하세요."
+            )
             
             completion = client.chat.completions.create(
-                model="llama3-8b-8192", # Groq에서 제공하는 모델 예시
+                # [중요] 기존 llama3-8b-8192 대신 이 모델명을 정확히 입력해야 에러가 안 납니다.
+                model="llama-3.3-70b-versatile", 
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": input_text}
@@ -64,13 +78,18 @@ def convert_text():
             }), 200
             
         except Exception as e:
+            # 상세 에러 기록
+            with open("error_debug.log", "a", encoding="utf-8") as f:
+                import traceback
+                f.write(f"Error: {str(e)}\n")
+                f.write(traceback.format_exc())
             return jsonify({"error": str(e)}), 500
     else:
         # 더미 응답 (API Key 미설정 시)
         dummy_responses = {
             "boss": f"(상사용 변환) {input_text} -> 보고 드립니다. {input_text} 확인 부탁드립니다.",
             "colleague": f"(동료용 변환) {input_text} -> 안녕하세요, {input_text} 관련하여 공유드립니다.",
-            "customer": f"(고객용 변환) {input_text} -> 고객님, {input_text} 에 대해 안내해 드리겠습니다."
+            "customer": f"(고객님용 변환) {input_text} -> 고객님, {input_text} 에 대해 안내해 드리겠습니다."
         }
         
         return jsonify({
@@ -81,4 +100,5 @@ def convert_text():
         }), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # 요청하신 대로 5001번 포트로 설정했습니다.
+    app.run(host='127.0.0.1', port=5001, debug=True)

@@ -3,13 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BizTone Converter</title>
+    <title>BizTone Converter - 업무 말투 변환기</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
-    <div id="app">
-        <h1>BizTone Converter</h1>
-        <p>환경 설정 및 API 연동 단계입니다.</p>
+    <div class="container">
+        <header>
+            <h1>BizTone <span class="highlight">Converter</span></h1>
+            <p class="subtitle">나의 생각을 전문적인 비즈니스 언어로 변환하세요.</p>
+        </header>
+
+        <main>
+            <section class="converter-section">
+                <div class="card input-card">
+                    <div class="card-header">
+                        <label for="input-text">원문 입력</label>
+                        <div class="char-count"><span id="current-chars">0</span> / 500</div>
+                    </div>
+                    <textarea id="input-text" placeholder="변환하고 싶은 내용을 입력하세요. (예: 이거 좀 확인해줘)" maxlength="500"></textarea>
+                    
+                    <div class="controls">
+                        <div class="target-selector">
+                            <span class="label">수신자 선택:</span>
+                            <div class="radio-group">
+                                <input type="radio" id="target-boss" name="target" value="boss" checked>
+                                <label for="target-boss">상사 (Upward)</label>
+                                
+                                <input type="radio" id="target-colleague" name="target" value="colleague">
+                                <label for="target-colleague">동료 (Lateral)</label>
+                                
+                                <input type="radio" id="target-customer" name="target" value="customer">
+                                <label for="target-customer">고객 (External)</label>
+                            </div>
+                        </div>
+                        <button id="convert-btn" class="btn-primary">
+                            <span class="btn-text">변환하기</span>
+                            <i class="fas fa-spinner fa-spin loader" style="display: none;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card output-card">
+                    <div class="card-header">
+                        <label>변환 결과</label>
+                        <button id="copy-btn" class="btn-secondary" title="복사하기">
+                            <i class="far fa-copy"></i> 복사
+                        </button>
+                    </div>
+                    <div id="output-text" class="output-area" data-placeholder="변환된 결과가 여기에 표시됩니다."></div>
+                    <div id="copy-feedback" class="feedback-msg">복사되었습니다!</div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 BizTone Converter. All rights reserved.</p>
+        </footer>
     </div>
     <script src="js/script.js"></script>
 </body>
