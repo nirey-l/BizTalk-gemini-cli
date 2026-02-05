@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 로딩 상태 표시
         convertBtn.disabled = true;
-        loader.style.display = 'inline-block';
+        loader.classList.remove('hidden');
         btnText.textContent = '변환 중...';
         outputText.textContent = '';
 
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
-            // 결과 표시 (애니메이션 효과처럼 순차적으로 표시 가능하나 일단 한 번에)
+            // 결과 표시
             outputText.textContent = data.converted;
 
         } catch (error) {
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             // 로딩 상태 해제
             convertBtn.disabled = false;
-            loader.style.display = 'none';
+            loader.classList.add('hidden');
             btnText.textContent = '변환하기';
         }
     });

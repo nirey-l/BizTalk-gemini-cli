@@ -5,63 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BizTone Converter - 업무 말투 변환기</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Pretendard Font -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="css/style.css">
+    
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-slate-50 text-slate-900 antialiased;
+            }
+        }
+        @layer components {
+            .card {
+                @apply bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300;
+            }
+            .btn-primary {
+                @apply bg-primary-600 text-white rounded-xl px-6 py-3 font-bold hover:bg-primary-700 active:scale-[0.98] transition-all disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+            }
+            .btn-secondary {
+                @apply border border-slate-200 text-slate-600 rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-50 hover:text-primary-600 hover:border-primary-200 transition-all;
+            }
+            .input-field {
+                @apply w-full rounded-xl border-slate-200 border-2 p-4 text-base focus:border-primary-500 focus:ring-0 outline-none transition-colors resize-none;
+            }
+            .radio-item input[type="radio"] {
+                @apply hidden;
+            }
+            .radio-item label {
+                @apply px-4 py-2 bg-slate-100 rounded-full cursor-pointer text-sm font-medium text-slate-600 border border-transparent transition-all;
+            }
+            .radio-item input[type="radio"]:checked + label {
+                @apply bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-200;
+            }
+            .radio-item label:hover:not(input:checked + label) {
+                @apply bg-slate-200;
+            }
+        }
+    </style>
+    <style>
+        #output-text:empty:after {
+            content: attr(data-placeholder);
+            color: #94a3b8; /* slate-400 */
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>BizTone <span class="highlight">Converter</span></h1>
-            <p class="subtitle">나의 생각을 전문적인 비즈니스 언어로 변환하세요.</p>
+<body class="min-h-screen py-12 px-4">
+    <div class="max-w-5xl mx-auto">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3">
+                BizTone <span class="text-primary-600">Converter</span>
+            </h1>
+            <p class="text-slate-500 text-lg md:text-xl font-medium">나의 생각을 전문적인 비즈니스 언어로 변환하세요.</p>
         </header>
 
         <main>
-            <section class="converter-section">
-                <div class="card input-card">
-                    <div class="card-header">
-                        <label for="input-text">원문 입력</label>
-                        <div class="char-count"><span id="current-chars">0</span> / 500</div>
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Input Section -->
+                <div class="card flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <label for="input-text" class="text-lg font-bold text-slate-800">원문 입력</label>
+                        <div class="text-sm font-medium text-slate-400">
+                            <span id="current-chars" class="text-slate-600">0</span> / 500
+                        </div>
                     </div>
-                    <textarea id="input-text" placeholder="변환하고 싶은 내용을 입력하세요. (예: 이거 좀 확인해줘)" maxlength="500"></textarea>
+                    <textarea id="input-text" class="input-field flex-grow mb-6 h-[300px]" placeholder="변환하고 싶은 내용을 입력하세요. (예: 이거 좀 확인해줘)" maxlength="500"></textarea>
                     
-                    <div class="controls">
+                    <div class="space-y-6">
                         <div class="target-selector">
-                            <span class="label">수신자 선택:</span>
-                            <div class="radio-group">
-                                <input type="radio" id="target-boss" name="target" value="boss" checked>
-                                <label for="target-boss">상사 (Upward)</label>
-                                
-                                <input type="radio" id="target-colleague" name="target" value="colleague">
-                                <label for="target-colleague">동료 (Lateral)</label>
-                                
-                                <input type="radio" id="target-customer" name="target" value="customer">
-                                <label for="target-customer">고객 (External)</label>
+                            <span class="block text-sm font-bold text-slate-700 mb-3">수신자 선택</span>
+                            <div class="flex flex-wrap gap-3">
+                                <div class="radio-item">
+                                    <input type="radio" id="target-boss" name="target" value="boss" checked>
+                                    <label for="target-boss">상사 (Upward)</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="target-colleague" name="target" value="colleague">
+                                    <label for="target-colleague">동료 (Lateral)</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="target-customer" name="target" value="customer">
+                                    <label for="target-customer">고객 (External)</label>
+                                </div>
                             </div>
                         </div>
-                        <button id="convert-btn" class="btn-primary">
+                        <button id="convert-btn" class="btn-primary w-full">
                             <span class="btn-text">변환하기</span>
-                            <i class="fas fa-spinner fa-spin loader" style="display: none;"></i>
+                            <i class="fas fa-spinner fa-spin loader hidden"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="card output-card">
-                    <div class="card-header">
-                        <label>변환 결과</label>
-                        <button id="copy-btn" class="btn-secondary" title="복사하기">
+                <!-- Output Section -->
+                <div class="card flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="text-lg font-bold text-slate-800">변환 결과</label>
+                        <button id="copy-btn" class="btn-secondary flex items-center gap-1.5" title="복사하기">
                             <i class="far fa-copy"></i> 복사
                         </button>
                     </div>
-                    <div id="output-text" class="output-area" data-placeholder="변환된 결과가 여기에 표시됩니다."></div>
-                    <div id="copy-feedback" class="feedback-msg">복사되었습니다!</div>
+                    <div id="output-text" class="input-field bg-slate-50 border-dashed border-slate-200 h-[300px] overflow-y-auto whitespace-pre-wrap text-slate-700" data-placeholder="변환된 결과가 여기에 표시됩니다."></div>
+                    
+                    <div class="mt-auto pt-6 flex justify-end">
+                        <div id="copy-feedback" class="text-sm font-bold text-emerald-600 opacity-0 transition-opacity duration-300">
+                            <i class="fas fa-check-circle mr-1"></i> 복사되었습니다!
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
 
-        <footer>
+        <footer class="text-center mt-16 text-slate-400 text-sm font-medium">
             <p>&copy; 2026 BizTone Converter. All rights reserved.</p>
         </footer>
     </div>
