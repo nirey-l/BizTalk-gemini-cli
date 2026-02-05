@@ -39,37 +39,60 @@ def convert_text():
     if not data or 'text' not in data:
         return jsonify({"error": "No text provided"}), 400
     
-    input_text = data.get('text')
+    input_text = data.get('text').strip()
     target_type = data.get('target', 'boss') 
     
+    if not input_text:
+        return jsonify({"error": "Text is empty"}), 400
+
     if client:
         try:
-            # 대상별 한국어 프롬프트 정의
-            target_prompts = {
-                "boss": "상사(상급자)에게 보고하는 격식 있고 정중한 비즈니스 한국어 말투",
-                "colleague": "동료에게 협업을 요청하거나 정보를 공유하는 예의 바르고 친절한 비즈니스 한국어 말투",
-                "customer": "고객에게 안내하거나 응대하는 극존칭의 친절한 서비스 한국어 말투"
+            # 대상별 최적화된 프롬프트 엔지니어링
+            prompts = {
+                "boss": {
+                    "role_desc": "상급자에게 보고하는 비즈니스 전문가",
+                    "style": "격식 있고 정중한 존댓말(하십시오체 중심)",
+                    "instruction": "결론부터 명확하게 제시하는 두괄식 보고 형식을 갖추세요. 불필요한 수식어는 줄이고 신뢰감을 주는 전문 용어를 사용하세요."
+                },
+                "colleague": {
+                    "role_desc": "동료와 협업하는 프로젝트 매니저",
+                    "style": "친절하고 상호 존중하는 부드러운 존댓말(해요체 혼용)",
+                    "instruction": "협조를 구하는 어투를 사용하며, 요청 사항과 필요 시 마감 기한을 명확히 포함하세요. '부탁드립니다', '감사합니다'와 같은 협업 지향적 표현을 사용하세요."
+                },
+                "customer": {
+                    "role_desc": "최고의 서비스를 제공하는 CS 전문가",
+                    "style": "극존칭을 사용하는 정중하고 친절한 어투",
+                    "instruction": "고객의 입장에서 생각하는 서비스 마인드를 강조하세요. '도움을 드리고자 합니다', '불편을 끼쳐 드려 죄송합니다' 등 상황에 맞는 격식 있는 표현을 사용하세요."
+                }
             }
             
-            target_desc = target_prompts.get(target_type, "정중한 비즈니스 한국어 말투")
+            p = prompts.get(target_type, prompts["boss"])
             
             system_prompt = (
-                f"당신은 비즈니스 커뮤니케이션 전문가입니다. "
-                f"입력된 텍스트를 {target_desc}로 변환해 주세요. "
-                f"반드시 한국어로 답변하고, 변환된 결과 텍스트만 출력하세요."
+                f"당신은 {p['role_desc']}입니다. "
+                f"사용자가 입력한 일상적인 말투를 {p['style']}로 변환하세요. "
+                f"지침: {p['instruction']}\n"
+                f"규칙:\n"
+                f"1. 반드시 한국어로 답변하세요.\n"
+                f"2. 변환된 결과 텍스트만 출력하고 설명이나 인사말은 생략하세요.\n"
+                f"3. 원문의 의도를 정확히 유지하세요."
             )
             
             completion = client.chat.completions.create(
-                # [중요] 기존 llama3-8b-8192 대신 이 모델명을 정확히 입력해야 에러가 안 납니다.
-                model="llama-3.3-70b-versatile", 
+                model="moonshotai/kimi-k2-instruct-0905", 
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": input_text}
                 ],
                 temperature=0.7,
-                max_tokens=500
+                max_tokens=1000
             )
-            converted_text = completion.choices[0].message.content
+            
+            converted_text = completion.choices[0].message.content.strip()
+            
+            # 로그 기록 (성공)
+            print(f"[INFO] Conversion successful: target={target_type}")
+            
             return jsonify({
                 "original": input_text,
                 "converted": converted_text,
@@ -78,23 +101,32 @@ def convert_text():
             }), 200
             
         except Exception as e:
-            # 상세 에러 기록
-            with open("error_debug.log", "a", encoding="utf-8") as f:
-                import traceback
-                f.write(f"Error: {str(e)}\n")
-                f.write(traceback.format_exc())
-            return jsonify({"error": str(e)}), 500
+            # 상세 에러 로깅
+            import traceback
+            error_msg = f"[ERROR] {str(e)}\n{traceback.format_exc()}"
+            print(error_msg)
+            
+            # 파일 로깅 (필요 시)
+            log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            with open(os.path.join(log_dir, "error.log"), "a", encoding="utf-8") as f:
+                from datetime import datetime
+                f.write(f"--- {datetime.now()} ---\n{error_msg}\n")
+                
+            return jsonify({"error": "AI 변환 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}), 500
     else:
-        # 더미 응답 (API Key 미설정 시)
+        # API 키가 없을 때의 대체 로직 (개발용)
+        print(f"[WARN] Groq Client not initialized. Using dummy response.")
         dummy_responses = {
-            "boss": f"(상사용 변환) {input_text} -> 보고 드립니다. {input_text} 확인 부탁드립니다.",
-            "colleague": f"(동료용 변환) {input_text} -> 안녕하세요, {input_text} 관련하여 공유드립니다.",
-            "customer": f"(고객님용 변환) {input_text} -> 고객님, {input_text} 에 대해 안내해 드리겠습니다."
+            "boss": f"[상사 보고] {input_text} 건에 대하여 보고드립니다. 해당 사항 확인 부탁드립니다.",
+            "colleague": f"[협조 요청] 안녕하세요, {input_text} 관련하여 협조를 부탁드리고자 합니다. 확인 가능하실까요?",
+            "customer": f"[고객 안내] 안녕하십니까 고객님. 문의하신 {input_text} 사항에 대해 정성껏 안내 도와드리겠습니다."
         }
         
         return jsonify({
             "original": input_text,
-            "converted": dummy_responses.get(target_type, input_text),
+            "converted": dummy_responses.get(target_type, f"변환된 텍스트: {input_text}"),
             "target": target_type,
             "source": "dummy-local"
         }), 200
